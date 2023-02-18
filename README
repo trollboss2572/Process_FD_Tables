@@ -1,0 +1,33 @@
+This README file will contain 3 parts. The introduction (this part), a part for the client, in order that they know the arguments that may be passed into the program, and a part about the use of each method, in order for
+analyzers to get an overview of each method and its functionality. This code was designed on Feb. 14th, 2023. It is designed to be implemented on Ubuntu 22.04.01. Any other use on other OS may cause undefined behavior.
+This program prints the tables kept by the OS in order to keep track of open files, assignments of File Descriptors, and processes.
+
+--CLIENT
+The following can optionally be passed as arguments to the program. (separated by white space) In case none of these are passed, the program treats all of them as true and will not print out the threshold at the bottom.
+A specific PID will also not be considered. (we consider all PIDs)
+	--per-process denotes that the FD process table should be displayed
+	
+	--systemWide denotes that the system-wide FD table should be displayed
+	
+	--Vnodes denotes that the VnodesFD table will be displayed
+	
+	--composite denotes that the composite table will be displayed
+	
+	--threshold=X (X is an integer) denotes that the program will display all process IDs and the number of files in processes which have greater or equal to X files in their FD table at the end of the program
+		(note: only one integer should be passed. if X is not an integer, the program will read from X until it reaches a non-numeric character and will not consider the threshold value if X starts non-numerically
+		If multiple threshold arguments are passed, the program will only consider the rightmost acceptable threshold value as an argument to the program)
+		
+	Y where Y is an integer. Y denotes the process ID of a particular process, from which we want to extract all data as specified in other arguments. 
+		(note: Only one integer should be passed. If multiple integers are passed, the rightmost one will be the one used. If a number is not solely an integer, then the program will read the number until it hits a non-numeric character)
+
+
+--ANALYSIS
+This analysis will run through each function in reverse order. (Start at main, end at beginning helper function)
+
+main first calls the method parse_flags in order to initialize true or false values (represented by 1 and 0, respectively) then implements print_tables which checks the truth of each value and the values of threshold and PID to see what to print.
+
+parse_flags checks the user input and initializes all pointer inputs (like systemWide, per-process etc.) to 1 if those arguments have been passed. (or some value in the case of threshold and PID).
+
+print_tables accepts all the integer values denoting the truth values of certain arguments and calls individual helper function to print those tables.
+
+
