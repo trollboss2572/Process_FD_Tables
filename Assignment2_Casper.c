@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <unistd.h>
+
+
 //prints the process FD table
 void print_process(long PID)
 {
@@ -28,16 +31,13 @@ void print_process(long PID)
             FD_dir = opendir(FD_dir_pth);
             int i = 0;
             //Check that we are allowed to read the FD table
-            if (FD_dir)
+            if (FD_dir && isdigit(*(direct_data->d_name)) > 0)
             {
                 //Iterate over the FD table subdirectory to increment our i
                 while (readdir(FD_dir))
                 {
-                    if(isdigit(*(direct_data->d_name)) > 0)
-                    {
-                        printf("%s %d\n", direct_data->d_name, i);
-                        i++;
-                    }
+                    printf("%s\t%d\n", direct_data->d_name, i);
+                    i++;
                 }
             }
             //Clean up after ourselves
@@ -58,7 +58,7 @@ void print_process(long PID)
     {
         for (int i = 0; readdir(FD_dir); i++)
         {
-            printf("%ld %d\n", PID, i);
+            printf("%ld\t%d\n", PID, i);
         }
     }
     else
@@ -80,8 +80,8 @@ void print_system_wide(long PID)
     DIR *overhead_dir = opendir("/proc");
     DIR *curr_proc_dir;
     DIR *FD_dir;
-    char proc_dir_pth[50];
-    char FD_dir_pth[100];
+    char proc_dir_pth[512];
+    char FD_dir_pth[1024];
     printf("PID\tFD\tFilename\n");
     printf("===========================\n");
     //Handle the case of printing all process FD tables
@@ -91,19 +91,23 @@ void print_system_wide(long PID)
         //while loop to iterate over all processes
         while(direct_data)
         {
-            sprintf(proc_dir_pth, "/proc/%ld", direct_data->d_ino);
-            sprintf(FD_dir_pth, "/proc/%ld/fd", direct_data->d_ino);
+            sprintf(proc_dir_pth, "/proc/%s", direct_data->d_name);
+            sprintf(FD_dir_pth, "/proc/%s/fd", direct_data->d_name);
             curr_proc_dir = opendir(proc_dir_pth);
             FD_dir = opendir(FD_dir_pth);
             struct dirent *FD_data;
             int i = 0;
             //Check that we are allowed to read the FD table
-            if (FD_dir)
+            if (FD_dir && isdigit(*(direct_data->d_name)) > 0)
             {
                 //Iterate over the FD table subdirectory to increment our i
                 while ((FD_data = readdir(FD_dir)))
                 {
-                    printf("%ld %d %s\n", direct_data->d_ino, i, direct_data->d_name);
+                    char FD_name[1024];
+                    char FD_name_dir[1024];
+                    sprintf(FD_name_dir, "/proc/%s/fd/%s", direct_data->d_name, FD_data->d_name);
+                    readlink(FD_name_dir, FD_name, 1024);
+                    printf("%s\t%d\t%s\n", direct_data->d_name, i, FD_name);
                     i++;
                 }
             }
@@ -126,13 +130,27 @@ void print_system_wide(long PID)
     {
         for (int i = 0; (FD_data = readdir(FD_dir)); i++)
         {
-            printf("%ld %d %s\n", PID, i, direct_data->d_name);
+            char FD_name[1024];
+            char FD_name_dir[1024];
+            sprintf(FD_name_dir, "/proc/%s/fd/%s", direct_data->d_name, FD_data->d_name);
+            readlink(FD_name_dir, FD_name, 1024);
+            printf("%ld\t%d\t%s\n", PID, i, FD_name);
         }
+    }
+    else
+    {
+        printf("This process ID cannot be found\n");
     }
     closedir(FD_dir);
     closedir(curr_proc_dir);
     closedir(overhead_dir);
 }
+
+void print_V_Nodes(long PID)
+{
+    
+}
+
 
 
 
@@ -153,6 +171,14 @@ int print_tables (int process, int system_wide, int V_Nodes, int composite, int 
     if (system_wide == 1)
     {
         print_system_wide(PID);
+    }
+    if (V_Nodes == 1)
+    {
+        print_V_Nodes(PID);
+    }
+    if (composite == 1)
+    {
+        print_composite(PID);
     }
     return 0;
 }
