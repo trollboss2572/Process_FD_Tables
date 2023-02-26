@@ -2,53 +2,157 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <dirent.h>
 //prints the process FD table
-int print_process(long *off_PID[], int *num_processes[], int ind, long PID, int threshold)
+void print_process(long PID)
 {
-    if (PID >= 0)
-    {
-        getPIDs
-    }
+    //All local variables to directory paths and directory info
+    struct dirent *direct_data;
+    DIR *overhead_dir = opendir("/proc");
+    DIR *curr_proc_dir;
+    DIR *FD_dir;
+    char proc_dir_pth[512];
+    char FD_dir_pth[1024];
     printf("PID\tFD\n");
-    printf("============\n")
+    printf("============\n");
+    //Handle the case of printing all process FD tables
+    if (PID == -1)
+    {
+        direct_data = readdir(overhead_dir);
+        //while loop to iterate over all processes
+        while(direct_data)
+        {
+            sprintf(proc_dir_pth, "/proc/%s", direct_data->d_name);
+            sprintf(FD_dir_pth, "/proc/%s/fd", direct_data->d_name);
+            curr_proc_dir = opendir(proc_dir_pth);
+            FD_dir = opendir(FD_dir_pth);
+            int i = 0;
+            //Check that we are allowed to read the FD table
+            if (FD_dir)
+            {
+                //Iterate over the FD table subdirectory to increment our i
+                while (readdir(FD_dir))
+                {
+                    if(isdigit(*(direct_data->d_name)) > 0)
+                    {
+                        printf("%s %d\n", direct_data->d_name, i);
+                        i++;
+                    }
+                }
+            }
+            //Clean up after ourselves
+            closedir(curr_proc_dir);
+            closedir(FD_dir);
+            direct_data = readdir(overhead_dir);
+        }
+        closedir(overhead_dir);
+        return;
+    }
+    //Consider the case of only reading the FD table of one process
+    sprintf(proc_dir_pth, "/proc/%ld", PID);
+    sprintf(FD_dir_pth, "%s/fd", proc_dir_pth);
+    curr_proc_dir = opendir(proc_dir_pth);
+    FD_dir = opendir(FD_dir_pth);
+    readdir(curr_proc_dir);
+    if(FD_dir)
+    {
+        for (int i = 0; readdir(FD_dir); i++)
+        {
+            printf("%ld %d\n", PID, i);
+        }
+    }
+    else
+    {
+        printf("This process ID cannot be found.\n");
+    }
+    closedir(FD_dir);
+    closedir(curr_proc_dir);
+    closedir(overhead_dir);
 }
 
-//checks all inputs and prints only what is defined to be printd by the user
+
+
+//Prints the system FD table
+void print_system_wide(long PID)
+{
+     //All local variables to directory paths and directory info
+    struct dirent *direct_data;
+    DIR *overhead_dir = opendir("/proc");
+    DIR *curr_proc_dir;
+    DIR *FD_dir;
+    char proc_dir_pth[50];
+    char FD_dir_pth[100];
+    printf("PID\tFD\tFilename\n");
+    printf("===========================\n");
+    //Handle the case of printing all process FD tables
+    if (PID == -1)
+    {
+        direct_data = readdir(overhead_dir);
+        //while loop to iterate over all processes
+        while(direct_data)
+        {
+            sprintf(proc_dir_pth, "/proc/%ld", direct_data->d_ino);
+            sprintf(FD_dir_pth, "/proc/%ld/fd", direct_data->d_ino);
+            curr_proc_dir = opendir(proc_dir_pth);
+            FD_dir = opendir(FD_dir_pth);
+            struct dirent *FD_data;
+            int i = 0;
+            //Check that we are allowed to read the FD table
+            if (FD_dir)
+            {
+                //Iterate over the FD table subdirectory to increment our i
+                while ((FD_data = readdir(FD_dir)))
+                {
+                    printf("%ld %d %s\n", direct_data->d_ino, i, direct_data->d_name);
+                    i++;
+                }
+            }
+            //Clean up after ourselves
+            closedir(curr_proc_dir);
+            closedir(FD_dir);
+            direct_data = readdir(overhead_dir);
+        }
+        closedir(overhead_dir);
+        return;
+    }
+    //Consider the case of only reading the FD table of one process
+    sprintf(proc_dir_pth, "/proc/%ld", PID);
+    sprintf(FD_dir_pth, "%s/fd", proc_dir_pth);
+    curr_proc_dir = opendir(proc_dir_pth);
+    FD_dir = opendir(FD_dir_pth);
+    direct_data = readdir(curr_proc_dir);
+    struct dirent *FD_data;
+    if(FD_dir)
+    {
+        for (int i = 0; (FD_data = readdir(FD_dir)); i++)
+        {
+            printf("%ld %d %s\n", PID, i, direct_data->d_name);
+        }
+    }
+    closedir(FD_dir);
+    closedir(curr_proc_dir);
+    closedir(overhead_dir);
+}
+
+
+
+//checks all inputs and prints only what is defined to be printed by the user. Returns 0 in case of successful printing
 int print_tables (int process, int system_wide, int V_Nodes, int composite, int threshold, long PID)
 {
-    //An array to pointers which store all processes which are larger than our threshold
-    long offending_PID[1024];
-    int num_processes[1024];
-    //The largest index to write to
-    int ind = 0;
     //Either all 1 or all 0, so print all
-    if (process == system_wide == V_Nodes == composite)
+    if (process == 0 && system_wide == 0 && V_Nodes == 0 && composite == 0)
     {
-        ind = print_process(offending_PID, num_processes, ind, PID, threshold);
-        ind = print_system_wide(offending_PID, num_processes, ind, PID, threshold);
-        ind = print_V_Nodes(offending_PID, num_processes, ind, PID, threshold);
-        ind = print_composite(offending_PID, num_processes, ind, PID, threshold);
+        print_process(PID);
+        print_system_wide(PID);
         return 0;
     }
     if (process == 1)
     {
-        ind = print_process(offending_PID, num_processes, ind, PID, threshold);
+        print_process(PID);
     }
     if (system_wide == 1)
     {
-        ind = print_system_wide(offending_PID, num_processes, ind, PID, threshold);
-    }
-    if (V_Nodes == 1)
-    {
-        ind = print_V_Nodes(offending_PID, num_processes, ind, PID, threshold);
-    }
-    if (composite == 1)
-    {
-        ind = print_composite(offending_PID, num_processes, ind, PID, threshold);
-    }
-    if (threshold >= 0)
-    {
-        print_threshold(offending_PID, num_processes, ind, PID);
+        print_system_wide(PID);
     }
     return 0;
 }
@@ -87,7 +191,7 @@ void parse_flags(int argc, char **argv, int *process, int *system_wide, int *V_N
                 continue;
             }
         }
-        if (isdigit(argv[i][0] > 0))
+        if (isdigit(**(argv + i)) > 0)
         {
             *PID = strtol(argv[i], NULL, 10);
             continue;
