@@ -148,7 +148,51 @@ void print_system_wide(long PID)
 
 void print_V_Nodes(long PID)
 {
-    
+    //All local variables to directory paths and directory info
+    struct dirent *direct_data;
+    DIR *overhead_dir = opendir("/proc");
+    DIR *curr_proc_dir;
+    char proc_dir_pth[512];
+    char proc_map_path[1024];
+    printf("FD\tInode\n");
+    printf("============\n");
+    //Handle the case of printing all process FD tables
+    if (PID == -1)
+    {
+        direct_data = readdir(overhead_dir);
+        //while loop to iterate over all processes
+        while(direct_data)
+        {
+            sprintf(proc_dir_pth, "/proc/%s", direct_data->d_name);
+            sprintf(proc_map_path, "/proc/%s/maps", direct_data->d_name);
+            curr_proc_dir = opendir(proc_dir_pth);
+            FILE *proc_map = fopen(proc_map_path, "r");
+            int i = 0;
+            if (proc_map && isdigit(*(direct_data->d_name)) > 0)
+            {
+                char I_Node[1024];
+                //Iterate over the FD table subdirectory to increment our i
+                while (fgets(I_Node, 512, proc_map))
+                {
+                    strtok(I_Node, " ");
+                    for (int j = 0; j < 5; j++)
+                    {
+                        I_Node = strtok(NULL, " ");
+                    }
+                    long inode = strtol(I_Node, NULL, 16);
+                    printf("%d\t%ld\n", i, inode);
+                    i++;
+                }
+                fclose(proc_map);
+            }
+            //Clean up after ourselves
+            closedir(curr_proc_dir);
+            //next step in our while loop
+            direct_data = readdir(overhead_dir);
+        }
+        closedir(overhead_dir);
+        return;
+    }
 }
 
 
@@ -162,6 +206,7 @@ int print_tables (int process, int system_wide, int V_Nodes, int composite, int 
     {
         print_process(PID);
         print_system_wide(PID);
+        print_V_Nodes(PID);
         return 0;
     }
     if (process == 1)
@@ -175,10 +220,6 @@ int print_tables (int process, int system_wide, int V_Nodes, int composite, int 
     if (V_Nodes == 1)
     {
         print_V_Nodes(PID);
-    }
-    if (composite == 1)
-    {
-        print_composite(PID);
     }
     return 0;
 }
