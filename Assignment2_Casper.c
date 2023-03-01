@@ -25,6 +25,7 @@ void print_process(long PID)
         //while loop to iterate over all processes
         while(direct_data)
         {
+            //Read all the files open in the process's fd table
             sprintf(proc_dir_pth, "/proc/%s", direct_data->d_name);
             sprintf(FD_dir_pth, "/proc/%s/fd", direct_data->d_name);
             curr_proc_dir = opendir(proc_dir_pth);
@@ -91,6 +92,7 @@ void print_system_wide(long PID)
         //while loop to iterate over all processes
         while(direct_data)
         {
+            //Iterate through all the process files in the process FD table
             sprintf(proc_dir_pth, "/proc/%s", direct_data->d_name);
             sprintf(FD_dir_pth, "/proc/%s/fd", direct_data->d_name);
             curr_proc_dir = opendir(proc_dir_pth);
@@ -169,6 +171,7 @@ void print_V_Nodes(long PID)
         //while loop to iterate over all processes
         while(direct_data)
         {
+            //Find the process's fdinfo directory, which contains the inode value for each file
             sprintf(proc_dir_pth, "/proc/%s", direct_data->d_name);
             sprintf(proc_info_path, "/proc/%s/fdinfo", direct_data->d_name);
             curr_proc_dir = opendir(proc_dir_pth);
@@ -274,6 +277,7 @@ void print_process_info(DIR *curr_proc, char *PID)
     char FD_dir_pth[1024];
     char proc_info_pth[200];
     struct dirent *proc_data;
+    //Iterate through the fd and fdinfo directory to find all the metadata and file data in the fd table and fd info table
     sprintf(FD_dir_pth, "/proc/%s/fd", PID);
     sprintf(proc_info_pth, "/proc/%s/fdinfo", PID);
     DIR * FD = opendir(FD_dir_pth);
@@ -304,6 +308,7 @@ void print_process_info(DIR *curr_proc, char *PID)
             long inode = strtol(I_str, NULL, 10);
             char FD_name[1024];
             char FD_path[1500];
+            //Print the value stored at the fd value stored here
             sprintf(FD_path, "%s/%s", FD_dir_pth, proc_data->d_name);
             readlink(FD_path, FD_name, 1024);
             printf("%s\t%d\t%s\t%ld\n", PID, i, FD_name, inode);
@@ -330,6 +335,7 @@ void print_composite(long PID)
         while((direct_data = readdir(overhead_dir)))
         {
             sprintf(proc_dir_pth, "/proc/%s", direct_data->d_name);
+            //Call our above helper function to print a specific line for us
             curr_proc_dir = opendir(proc_dir_pth);
             print_process_info(curr_proc_dir, direct_data->d_name);
             closedir(curr_proc_dir);
@@ -379,11 +385,12 @@ void print_threshold(int threshold)
             //Check that we are allowed to read the FD table
             if (FD_dir && isdigit(*(direct_data->d_name)) > 0)
             {
-                //Iterate over the FD table subdirectory to increment our i
+                //Iterate over the FD table subdirectory to increment our i.
                 while ((FD_data = readdir(FD_dir)))
                 {
                     i++;
                 }
+                //If i exceeds our threshold, then we print the process as an offending process
                 if (i >= threshold)
                 {
                     printf("%s (%d)\n", direct_data->d_name, i);

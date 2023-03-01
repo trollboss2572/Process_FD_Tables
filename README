@@ -4,7 +4,7 @@ This program prints the tables kept by the OS in order to keep track of open fil
 
 --CLIENT
 The following can optionally be passed as arguments to the program. (separated by white space) In case none of these are passed, the program treats all of them as true and will not print out the threshold at the bottom.
-A specific PID will also not be considered. (we consider all PIDs)
+A specific PID will also not be considered. (we consider all PIDs) All values printed are posted in base 10.
 	--per-process denotes that the FD process table should be displayed
 	
 	--systemWide denotes that the system-wide FD table should be displayed
@@ -17,7 +17,7 @@ A specific PID will also not be considered. (we consider all PIDs)
 		(note: only one integer should be passed. if X is not an integer, the program will read from X until it reaches a non-numeric character and will not consider the threshold value if X starts non-numerically
 		If multiple threshold arguments are passed, the program will only consider the rightmost acceptable threshold value as an argument to the program)
 		
-	Y where Y is an integer. Y denotes the process ID of a particular process, from which we want to extract all data as specified in other arguments. 
+	Y where Y is an integer. Y denotes the process ID of a particular process, from which we want to extract all data as specified in other arguments. If Y is not a valid process ID, then all proccesses will be printed as normal
 		(note: Only one integer should be passed. If multiple integers are passed, the rightmost one will be the one used. If a number is not solely an integer, then the program will read the number until it hits a non-numeric character)
 
 
@@ -30,4 +30,20 @@ parse_flags checks the user input and initializes all pointer inputs (like syste
 
 print_tables accepts all the integer values denoting the truth values of certain arguments and calls individual helper function to print those tables.
 
+print_process iterates through all the files in the /[pid]/fd directory, and iterates and prints the values of i for each file within this directory that we find
 
+print_system_wide iterates through all the files in the /[pid]/fd directory like print_process, however we also read the links of these files using readlink and prints the names of each of these files as well
+
+print_V_Nodes iterates through the fdinfo directory, which contains metadata about each file of a process, including that process's inode value
+
+print_process_info is a helper function to print_composite. It prints all the info about all the files of a particular process.
+
+print_composite prints the composite argument type if passed as a wanted method or if no argument is passed.
+
+
+
+--Addendum:Problem Solving
+
+I solved this problem with top down engineering. I designed my main function to call two methods, print_tables and parse_flags. I knew ahead of time what I wanted these methods to do, thus completing them was just a matter of implementation.
+From print_tables, I knew I would need to seperate my code into separate modules in order to handle all the separate arguments that the user could pass into my function. I created the helper functions to print_tables like print_process etc.
+to handle these cases.
